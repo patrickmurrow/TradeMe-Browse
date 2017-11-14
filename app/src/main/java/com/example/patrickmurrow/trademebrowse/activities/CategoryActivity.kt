@@ -248,6 +248,9 @@ class CategoryActivity : AppCompatActivity() {
         updateHierarchyView()
     }
 
+    /**
+     * Updates the view of the user's current search hierarchy.
+     */
     private fun updateHierarchyView() {
         var hierarchyText = ""
         for (category in selectedCategories) {
