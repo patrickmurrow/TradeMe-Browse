@@ -13,7 +13,7 @@ import com.example.patrickmurrow.trademebrowse.R
 import com.example.patrickmurrow.trademebrowse.helpers.UiHelper
 import com.example.patrickmurrow.trademebrowse.helpers.NetworkHelper
 import com.example.patrickmurrow.trademebrowse.model.Listing
-import kotlinx.android.synthetic.main.layout_listing.*
+import kotlinx.android.synthetic.main.activity_listing.*
 import org.json.JSONObject
 
 /**
@@ -32,7 +32,7 @@ class ListingActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.layout_listing)
+        setContentView(R.layout.activity_listing)
         setSupportActionBar(toolbar)
         supportActionBar?.setHomeAsUpIndicator(R.drawable.ic_arrow_back_white_24px)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)

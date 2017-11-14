@@ -19,7 +19,8 @@ import com.example.patrickmurrow.trademebrowse.fragments.ListingsFragment
 import com.example.patrickmurrow.trademebrowse.helpers.UiHelper
 import com.example.patrickmurrow.trademebrowse.helpers.NetworkHelper
 import com.example.patrickmurrow.trademebrowse.model.Category
-import kotlinx.android.synthetic.main.layout_categories.*
+import kotlinx.android.synthetic.main.activity_categories.*
+import kotlinx.android.synthetic.main.layout_search_selection.*
 import org.json.JSONException
 import org.json.JSONObject
 
@@ -37,7 +38,7 @@ class CategoryActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.layout_categories)
+        setContentView(R.layout.activity_categories)
 
         val responseListener = Response.Listener<JSONObject> { response ->
             try {
@@ -47,18 +48,19 @@ class CategoryActivity : AppCompatActivity() {
                     Category(categoriesJson.getJSONObject(it))
                 }
 
-                showRootCategories()
+                setupRootCategories()
             } catch (e: JSONException) {
                 e.printStackTrace()
             }
         }
 
+        // Request root categories
         NetworkHelper.requestCategories("0", responseListener, errorListener)
 
-        setupViews()
+        setupListeners()
     }
 
-    private fun setupViews() {
+    private fun setupListeners() {
         val onQueryTextListener = object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String): Boolean {
                 hideRootCategories()
@@ -77,10 +79,14 @@ class CategoryActivity : AppCompatActivity() {
         }
 
         collapseLayout.setOnClickListener {
-            collapseExpandClick()
+            toggleSubcategoryView()
         }
     }
 
+    /**
+     * On root category click, hides root categories, shows the selected category's
+     * subcategories. Shows listings of the selected root category.
+     */
     private fun categoryClick(categoryAdapter: CategoryAdapter, position: Int) {
         val category = categoryAdapter.getItem(position)
         searchView.setQuery("", false)
@@ -92,7 +98,7 @@ class CategoryActivity : AppCompatActivity() {
         slideUp.setAnimationListener(object : Animation.AnimationListener {
 
             override fun onAnimationStart(animation: Animation) {
-                updateHierarchyView()
+                updateSearchHierarchyView()
             }
 
             override fun onAnimationRepeat(animation: Animation) {}
@@ -104,6 +110,10 @@ class CategoryActivity : AppCompatActivity() {
         categoriesGrid.startAnimation(slideUp)
     }
 
+    /**
+     * On subcategory click, shows the selected subcategory's subcategories, if any. Shows
+     * listings of the selected subcategory.
+     */
     private fun subcategoryClick(subcategoryAdapter: SubcategoryAdapter, position: Int) {
         val category = subcategoryAdapter.getItem(position)
         selectedCategories.add(category)
@@ -116,7 +126,10 @@ class CategoryActivity : AppCompatActivity() {
         }
     }
 
-    private fun collapseExpandClick() {
+    /**
+     * Toggles the visibility of the subcategories selection view.
+     */
+    private fun toggleSubcategoryView() {
         if (subcategoriesList.visibility == View.VISIBLE) {
             subcategoriesList.visibility = View.GONE
             collapseExpandArrow.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_keyboard_arrow_down_white_24px))
@@ -126,6 +139,10 @@ class CategoryActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Removes the latest category in the search hierarchy. Sends the user back to root
+     * category selection when all search criteria is removed.
+     */
     private fun removeClick() {
         if (selectedCategories.isEmpty()) {
             searchView.setQuery("", false)
@@ -136,38 +153,45 @@ class CategoryActivity : AppCompatActivity() {
 
         if (selectedCategories.isEmpty() && searchView.query.isEmpty()) {
             subcategories.clear()
-            val slideUp = AnimationUtils.loadAnimation(this, R.anim.slide_up_anim)
-
-            slideUp.setAnimationListener(object : Animation.AnimationListener {
-
-                override fun onAnimationStart(animation: Animation) {
-                    searchHierarchyLayout.elevation = -2f
-                    collapseLayout.elevation = -2f
-                    subcategoriesList.visibility = View.GONE
-                    listingsLayout.visibility = View.GONE
-                }
-
-                override fun onAnimationRepeat(animation: Animation) {}
-
-                override fun onAnimationEnd(animation: Animation) {
-                    searchHierarchyLayout.elevation =  UiHelper.getFloatPixelsFromDp(this@CategoryActivity, 2f)
-                    collapseLayout.elevation = UiHelper.getFloatPixelsFromDp(this@CategoryActivity, 2f)
-                    searchHierarchyLayout.visibility = View.GONE
-                    collapseLayout.visibility = View.GONE
-                    rootCategoriesLayout.visibility = View.VISIBLE
-                    collapseExpandArrow.setImageDrawable(ContextCompat.getDrawable(this@CategoryActivity, R.drawable.ic_keyboard_arrow_up_white_24px))
-                    getListingsFragment().showProgress()
-                }
-            })
-
-            searchHierarchyLayout.startAnimation(slideUp)
-            collapseLayout.startAnimation(slideUp)
-
-            val slideIn = AnimationUtils.loadAnimation(this@CategoryActivity, R.anim.slide_up_in_anim)
-            categoriesGrid.startAnimation(slideIn)
+            hideSearchHierarchyView()
         } else {
             updateSubCategories()
         }
+    }
+
+    /**
+     * Hides the ability to see and select subcategories, shows root categories.
+     */
+    private fun hideSearchHierarchyView() {
+        val slideUp = AnimationUtils.loadAnimation(this, R.anim.slide_up_anim)
+
+        slideUp.setAnimationListener(object : Animation.AnimationListener {
+
+            override fun onAnimationStart(animation: Animation) {
+                searchHierarchyLayout.elevation = -2f
+                collapseLayout.elevation = -2f
+                subcategoriesList.visibility = View.GONE
+                listingsLayout.visibility = View.GONE
+            }
+
+            override fun onAnimationRepeat(animation: Animation) {}
+
+            override fun onAnimationEnd(animation: Animation) {
+                searchHierarchyLayout.elevation =  UiHelper.getFloatPixelsFromDp(this@CategoryActivity, 2f)
+                collapseLayout.elevation = UiHelper.getFloatPixelsFromDp(this@CategoryActivity, 2f)
+                searchHierarchyLayout.visibility = View.GONE
+                collapseLayout.visibility = View.GONE
+                rootCategoriesLayout.visibility = View.VISIBLE
+                collapseExpandArrow.setImageDrawable(ContextCompat.getDrawable(this@CategoryActivity, R.drawable.ic_keyboard_arrow_up_white_24px))
+                getListingsFragment().showProgress()
+            }
+        })
+
+        searchHierarchyLayout.startAnimation(slideUp)
+        collapseLayout.startAnimation(slideUp)
+
+        val slideIn = AnimationUtils.loadAnimation(this@CategoryActivity, R.anim.slide_up_in_anim)
+        categoriesGrid.startAnimation(slideIn)
     }
 
     private fun hideRootCategories() {
@@ -180,7 +204,7 @@ class CategoryActivity : AppCompatActivity() {
         collapseLayout.startAnimation(slideDown)
     }
 
-    private fun showRootCategories() {
+    private fun setupRootCategories() {
         categoryProgress.visibility = View.GONE
         rootCategoriesLayout.visibility = View.VISIBLE
 
@@ -199,7 +223,7 @@ class CategoryActivity : AppCompatActivity() {
     private fun updateSubCategories() {
         subcategories.clear()
 
-        updateHierarchyView()
+        updateSearchHierarchyView()
 
         var latestCategoryNumber = "0"
         if (!selectedCategories.isEmpty()) {
@@ -245,13 +269,13 @@ class CategoryActivity : AppCompatActivity() {
 
         subcategoryAdapter.setClickListener(itemClickListener)
         subcategoriesList.adapter = subcategoryAdapter
-        updateHierarchyView()
+        updateSearchHierarchyView()
     }
 
     /**
      * Updates the view of the user's current search hierarchy.
      */
-    private fun updateHierarchyView() {
+    private fun updateSearchHierarchyView() {
         var hierarchyText = ""
         for (category in selectedCategories) {
             if (!hierarchyText.isEmpty()) {
